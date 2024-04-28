@@ -7,19 +7,19 @@ module Rackassembler
 
     def initialize(assembly)
       @assembly = assembly
-      @assembly.reject! { |line| line.strip.empty? }
-      @assembly.reject! { |line| line.strip.start_with?("//") }
+      @assembly.reject! { |line| line.strip.start_with?("//") || line.strip.empty? }
       @assembly.map! { |line| line.gsub(" ", "").chomp}
-      @current_line_number = 0
-      @current_line = @assembly[@current_line_number]
+      @current_line_number = -1
+      @current_line = nil
     end
     def has_more_lines?
       @current_line_number < @assembly.size
     end
     def advance
-      return unless has_more_lines?
+      return false unless has_more_lines?
       @current_line_number += 1
       @current_line = @assembly[@current_line_number]
+      has_more_lines?
     end
     def instruction_type
       return :A_INSTRUCTION if current_line.start_with? "@"
@@ -49,14 +49,22 @@ module Rackassembler
       @current_line.split(";", 2)[1]
     end
 
+    def rewind
+      @current_line_number = -1
+      @current_line = nil
+    end
+
     def info
       <<~EOS
+Instruction: #{@current_line}
+Line number: #{@current_line_number}
 Has more lines? #{has_more_lines?}    
 Instruction type #{instruction_type}    
-Symbol #{symbol}    
-Destination #{dest}    
-Computation #{comp}    
-Jump #{jump}      
+Symbol #{instruction_type != :C_INSTRUCTION ? symbol : "not applicable"}    
+Destination #{instruction_type == :C_INSTRUCTION ? dest : "not applicable"}    
+Computation #{instruction_type == :C_INSTRUCTION ? comp : "not applicable"}    
+Jump #{instruction_type == :C_INSTRUCTION ? jump : "not applicable"}    
+---  
       EOS
     end
   end
