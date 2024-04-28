@@ -8,9 +8,3 @@ Rake::TestTask.new(:test) do |t|
   t.libs << "lib"
   t.test_files = FileList["test/**/test_*.rb"]
 end
-
-require "rubocop/rake_task"
-
-RuboCop::RakeTask.new
-
-task default: %i[test rubocop]

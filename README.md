@@ -7,3 +7,5 @@ HackAssembler implementation made with Ruby. This is my solution to making an as
 Install dependencies `./bin/setup` or `bundle install`
 
 Run tests `bundle exec rake test`
+
+Run project `ruby lib/rackassembler.rb`
