@@ -5,12 +5,13 @@ require_relative "rackassembler/Parser"
 require_relative "rackassembler/Code"
 
 module Rackassembler
-  class Error < StandardError; end
+  class InputFileError < StandardError; end
 
   file = ARGV[0]
 
-  raise Error, "Please provide assembly file as a command-line argument" if file.nil?
-  raise Error, "#{file} does not exist." unless File.exist?(file)
+  raise InputFileError, "Please provide assembly file as a command-line argument" if file.nil?
+  raise InputFileError, "#{file} does not exist." unless File.exist?(file)
+  raise InputFileError, "#{file} is missing the .asm -extension." unless file.include?(".asm")
 
   output_filename = file.sub(".asm", ".hack")
 
@@ -21,8 +22,7 @@ module Rackassembler
   current_instruction_address = 0
   while parser.advance
     if parser.instruction_type == :L_INSTRUCTION
-      symbol = parser.current_line.gsub(/[()]/, "")
-      code.labels[symbol.to_sym] = current_instruction_address
+      code.add_label(parser.label, current_instruction_address)
     else
       current_instruction_address += 1
     end
@@ -42,7 +42,7 @@ module Rackassembler
         instruction += code.dest(parser.dest)
         instruction += code.jump(parser.jump)
       when :A_INSTRUCTION
-        instruction = code.a(parser.current_line).to_s
+        instruction = code.a_instruction(parser.current_line).to_s
       when :L_INSTRUCTION
         next
       else
