@@ -3,6 +3,7 @@
 require_relative "rackassembler/version"
 require_relative "rackassembler/Parser"
 require_relative "rackassembler/Code"
+require 'benchmark'
 
 module Rackassembler
   class InputFileError < StandardError; end
@@ -13,42 +14,31 @@ module Rackassembler
   raise InputFileError, "#{file} does not exist." unless File.exist?(file)
   raise InputFileError, "#{file} is missing the .asm -extension." unless file.include?(".asm")
 
-  output_filename = file.sub(".asm", ".hack")
+  time = Benchmark.realtime do
+    output_filename = file.sub(".asm", ".hack")
 
-  parser = Parser.new(File.open(file).readlines)
-  code = Code.new
+    parser = Parser.new(file)
+    code = Code.new
 
-  #pre-assemble
-  current_instruction_address = 0
-  while parser.advance
-    if parser.instruction_type == :L_INSTRUCTION
-      code.add_label(parser.label, current_instruction_address)
-    else
-      current_instruction_address += 1
-    end
-  end
-
-  parser.rewind
-
-  File.open(output_filename, "w") do |f|
-
+    current_instruction_address = 0
     while parser.advance
-      instruction = ""
-
-      case parser.instruction_type
-      when :C_INSTRUCTION
-        instruction += "111"
-        instruction += code.comp(parser.comp)
-        instruction += code.dest(parser.dest)
-        instruction += code.jump(parser.jump)
-      when :A_INSTRUCTION
-        instruction = code.a_instruction(parser.current_line).to_s
-      when :L_INSTRUCTION
-        next
+      if parser.instruction_type == :L_INSTRUCTION
+        code.add_label(parser.label, current_instruction_address)
       else
-        raise "Unknown instruction in line type: #{parser.current_line}, #{parser.current_line}"
+        current_instruction_address += 1
       end
-      f.puts instruction unless instruction.nil?
+    end
+
+    parser.code = code
+
+    File.open(output_filename, "w") do |f|
+      while parser.advance
+        instruction = parser.current_line_in_machine_language
+        next if instruction.nil?
+        f.puts instruction
+      end
     end
   end
+
+  puts "Finished in #{time.round(2)}s"
 end

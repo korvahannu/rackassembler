@@ -30,13 +30,20 @@ module Rackassembler
       result
     end
 
+    def c_instruction(pcomp, pdest, pjump)
+      instruction = "111"
+      instruction += comp(pcomp)
+      instruction += dest(pdest)
+      instruction + jump(pjump)
+    end
+
     def a_instruction(instruction)
       original = instruction[1..-1]
       instruction = original
       instruction = PREDEFINED_SYMBOLS[instruction.to_sym] unless instruction =~ /\A[0-9]+\z/
       instruction = @labels[original.to_sym] if instruction.nil?
       instruction = get_or_add_symbol(original) if instruction.nil?
-      integer_to_16bit_binary(instruction)
+      integer_to_16bit_binary_string(instruction)
     end
 
     def add_label(label, value)
@@ -45,7 +52,7 @@ module Rackassembler
 
     private
 
-    def integer_to_16bit_binary(str)
+    def integer_to_16bit_binary_string(str)
       str = str.to_i.to_s(2)
       while str.size < 16
         str.prepend("0")

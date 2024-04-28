@@ -4,24 +4,31 @@ module Rackassembler
 
   class Parser
     attr_reader :current_line
+    attr_accessor :code
 
-    def initialize(assembly)
-      @assembly = assembly
-      @assembly.reject! { |line| line.strip.start_with?("//") || line.strip.empty? }
-      @assembly.map! { |line| line.gsub(" ", "").chomp}
+    def initialize(filename)
+      @filename = filename
+      @file = File.open(@filename)
       @current_line_number = -1
       @current_line = nil
-    end
-
-    def has_more_lines?
-      @current_line_number < @assembly.size
+      @code = nil
     end
 
     def advance
-      return false unless has_more_lines?
+      line = ""
+      begin
+        line = @file.readline()
+        while !line.nil? && (line.strip.start_with?("//") || line.strip.empty?)
+          line = @file.readline()
+        end
+      rescue EOFError
+        rewind
+        return false
+      end
+      line = line.gsub(" ", "").chomp
       @current_line_number += 1
-      @current_line = @assembly[@current_line_number]
-      has_more_lines?
+      @current_line = line
+      true
     end
 
     def instruction_type
@@ -64,6 +71,24 @@ module Rackassembler
     def rewind
       @current_line_number = -1
       @current_line = nil
+      @file = File.open(@filename)
+    end
+
+    def current_line_in_machine_language
+      instruction = ""
+
+      case instruction_type
+      when :C_INSTRUCTION
+        instruction = code.c_instruction(comp, dest, jump)
+      when :A_INSTRUCTION
+        instruction = code.a_instruction(current_line)
+      when :L_INSTRUCTION
+        instruction = nil
+      else
+        raise "Unknown instruction in line type: #{current_line}, #{current_line}"
+      end
+
+      instruction
     end
   end
 end
